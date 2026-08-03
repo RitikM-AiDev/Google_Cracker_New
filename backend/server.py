@@ -562,7 +562,6 @@ async def github_callback(code: str):
         headers={"Accept": "application/json"},
     )
 
-    print("Token response:", response.status_code, response.text)
 
     token_data = response.json()
 
@@ -582,20 +581,17 @@ async def github_callback(code: str):
         },
     )
 
-    print("User response:", user_details.status_code, user_details.text)
 
     data = user_details.json()
 
     github_user = data.get("login")
 
-    print("GitHub user:", github_user)
 
     result = await userdb.update_one(
         {"github_username": github_user},
         {"$set": {"github_token": token}},
     )
 
-    print(result.raw_result)
 
     return RedirectResponse("https://google-cracker-new.vercel.app/sprint")
 
@@ -639,80 +635,100 @@ async def check_github_access(email: str):
 @app.post("/check/commit/github")
 async def check_commit_github(email: str):
     user = await userdb.find_one({"email": email})
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    else:
-        user_name = user["github_username"]
-        token = user["github_token"]
-        url = f"https://api.github.com/users/{user_name}/repos"
-        response = requests.get(
-            url,
-            headers={
-                "Accept" : "application/vnd.github+json",
-                "Authorization" : f"token {token}"
-            },
-            params={"sort" : "pushed","direction" : "desc", "per_page": 1}
-        )
-        data = response.json()
-        if not data:
-            return {"solved": False}
-        top_repo = data[0]["name"]
-        commit_url = f"https://api.github.com/repos/{user_name}/{top_repo}/commits"
+
+    user_name = user["github_username"]
+    token = user["github_token"]
+    last_solved_question = user.get("last_solved_question", 0)
+
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"token {token}"
+    }
+
+   
+    repos_response = requests.get(
+        f"https://api.github.com/users/{user_name}/repos",
+        headers=headers,
+        params={
+            "sort": "pushed",
+            "direction": "desc",
+            "per_page": 100
+        }
+    )
+
+    if repos_response.status_code != 200:
+        return {
+            "error": repos_response.json()
+        }
+
+    repos = repos_response.json()
+
+    if not repos:
+        return {
+            "solved": False,
+            "message": "No repositories found."
+        }
+
+    now = datetime.now(timezone.utc)
+
+    for repo in repos:
+
+        repo_name = repo["name"]
+
         commit_response = requests.get(
-            commit_url,
-            headers={
-                "Accept" : "application/vnd.github+json",
-                "Authorization" : f"token {token}"
-            },
-            params={"per_page" : 1}
+            f"https://api.github.com/repos/{user_name}/{repo_name}/commits",
+            headers=headers,
+            params={"per_page": 1}
         )
-        commit_data = commit_response.json()
+
+        if commit_response.status_code != 200:
+            continue
+
+        commits = commit_response.json()
+
+        if not isinstance(commits, list) or len(commits) == 0:
+            continue
+
+        latest_commit = commits[0]
+
       
-        if not commit_data:
-            return {
-                "solved" : False
-            }
-        user = await userdb.find_one({"github_username" : user_name})
-        last_solved_question = user.get("last_solved_question", 0)
-        response = requests.get(url)
+        if "commit" not in latest_commit:
+            continue
 
-        if response.status_code != 200:
-            return {
-                "error": response.json()
-            }
+        commit_date = latest_commit["commit"]["author"]["date"]
+        commit_time = datetime.fromisoformat(
+            commit_date.replace("Z", "+00:00")
+        )
 
-        commit_data = response.json()
-        print(commit_data)
-        if not isinstance(commit_data, list):
-            return {
-                "error": commit_data
-            }
 
-        if len(commit_data) == 0:
-            return {
-                "message": "No commits found."
-            }
-
-        commit_date = commit_data[0]["commit"]["author"]["date"]   
-        if datetime.fromisoformat(commit_date.replace("Z", "+00:00")).date() == datetime.now(timezone.utc).date() and abs(datetime.now(timezone.utc) - datetime.fromisoformat(commit_date.replace("Z", "+00:00"))) <= timedelta(minutes=1.5):
+        if (
+            commit_time.date() == now.date()
+            and abs(now - commit_time) <= timedelta(minutes=1.5)
+        ):
             await userdb.update_one(
-                {"github_username" : user_name},
+                {"email": email},
                 {
-                    "$set" : {
-                        "last_solved_question" : last_solved_question + 1
+                    "$inc": {
+                        "last_solved_question": 1
                     }
                 }
-                
             )
+
             return {
-                "solved" : True,
-                "last_solved_question" : last_solved_question + 1
+                "solved": True,
+                "repository": repo_name,
+                "commit_sha": latest_commit["sha"],
+                "commit_time": commit_date,
+                "last_solved_question": last_solved_question + 1
             }
-        else:
-            return {
-                "solved" : False
-            }
-    
+
+    return {
+        "solved": False,
+        "message": "No recent commits found."
+    }
         
 @app.get("/get/last/solved/ques")
 async def get_last_solved_ques(email: str):
