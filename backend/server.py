@@ -643,12 +643,28 @@ async def check_commit_github(email: str):
     token = user["github_token"]
     last_solved_question = user.get("last_solved_question", 0)
 
+    now = datetime.now(timezone.utc)
+
+    reset_at = user.get("verified_commit_times_reset_at")
+    if reset_at is None or (now - reset_at) >= timedelta(hours=24):
+        await userdb.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "verified_commit_times": [],
+                    "verified_commit_times_reset_at": now
+                }
+            }
+        )
+        verified_times = []
+    else:
+        verified_times = user.get("verified_commit_times", [])
+
     headers = {
         "Accept": "application/vnd.github+json",
         "Authorization": f"token {token}"
     }
 
-   
     repos_response = requests.get(
         f"https://api.github.com/users/{user_name}/repos",
         headers=headers,
@@ -661,7 +677,9 @@ async def check_commit_github(email: str):
 
     if repos_response.status_code != 200:
         return {
-            "error": repos_response.json()
+            "solved": False,
+            "error": repos_response.json(),
+            "message": "Failed to fetch GitHub repositories."
         }
 
     repos = repos_response.json()
@@ -669,10 +687,8 @@ async def check_commit_github(email: str):
     if not repos:
         return {
             "solved": False,
-            "message": "No repositories found."
+            "message": "No repositories found on your GitHub account."
         }
-
-    now = datetime.now(timezone.utc)
 
     for repo in repos:
 
@@ -694,7 +710,6 @@ async def check_commit_github(email: str):
 
         latest_commit = commits[0]
 
-      
         if "commit" not in latest_commit:
             continue
 
@@ -703,17 +718,23 @@ async def check_commit_github(email: str):
             commit_date.replace("Z", "+00:00")
         )
 
+        # Accept commits pushed today (full day window)
+        if commit_time.date() == now.date():
 
-        if (
-            commit_time.date() == now.date()
-            and abs(now - commit_time) <= timedelta(minutes=3)
-        ):
+            # ── Duplicate check: same commit timestamp already verified ──
+            if commit_date in verified_times:
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"This commit ({commit_date}) has already been verified. Push a new commit to verify again."
+                )
+            # ─────────────────────────────────────────────────────────────
+
+            # Store the commit timestamp and increment counter
             await userdb.update_one(
                 {"email": email},
                 {
-                    "$inc": {
-                        "last_solved_question": 1
-                    }
+                    "$inc": {"last_solved_question": 1},
+                    "$push": {"verified_commit_times": commit_date}
                 }
             )
 
@@ -727,7 +748,7 @@ async def check_commit_github(email: str):
 
     return {
         "solved": False,
-        "message": "No recent commits found."
+        "message": "No commits found for today. Push your solution to GitHub and try again."
     }
         
 @app.get("/get/last/solved/ques")
