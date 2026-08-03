@@ -1,3 +1,4 @@
+import re
 import secrets
 import asyncio
 from requests import request
@@ -555,48 +556,60 @@ async def github_login():
 
 @app.get("/auth/github/callback")
 async def github_callback(code: str):
-    response = requests.post(
-        "https://github.com/login/oauth/access_token",
-        data={
-            "client_id": os.getenv("github_client_id"),
-            "client_secret": os.getenv("github_client_secret"),
-            "code": code,
-        },
-        headers={"Accept": "application/json"},
-    )
+    try:
+        response = requests.post(
+            "https://github.com/login/oauth/access_token",
+            data={
+                "client_id": os.getenv("github_client_id"),
+                "client_secret": os.getenv("github_client_secret"),
+                "code": code,
+            },
+            headers={"Accept": "application/json"},
+        )
 
+        token_data = response.json()
 
-    token_data = response.json()
+        if "access_token" not in token_data:
+            return RedirectResponse(
+                "https://google-cracker-new.vercel.app/sprint?github_error=token_failed"
+            )
 
-    if "access_token" not in token_data:
-        return {
-            "error": "Failed to get access token",
-            "github_response": token_data,
-        }
+        token = token_data["access_token"]
 
-    token = token_data["access_token"]
+        user_details = requests.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+            },
+        )
 
-    user_details = requests.get(
-        "https://api.github.com/user",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
-        },
-    )
+        data = user_details.json()
+        github_user = data.get("login", "").lower()
 
+        if not github_user:
+            return RedirectResponse(
+                "https://google-cracker-new.vercel.app/sprint?github_error=no_user"
+            )
 
-    data = user_details.json()
+        # Match case-insensitively: DB stores github_username lowercased at registration
+        result = await userdb.update_one(
+            {"github_username": {"$regex": f"^{re.escape(github_user)}$", "$options": "i"}},
+            {"$set": {"github_token": token}},
+        )
 
-    github_user = data.get("login")
+        if result.matched_count == 0:
+            # No registered user has this GitHub username linked
+            return RedirectResponse(
+                f"https://google-cracker-new.vercel.app/sprint?github_error=not_linked&github_user={github_user}"
+            )
 
+        return RedirectResponse("https://google-cracker-new.vercel.app/sprint?github_connected=true")
 
-    result = await userdb.update_one(
-        {"github_username": github_user},
-        {"$set": {"github_token": token}},
-    )
-
-
-    return RedirectResponse("https://google-cracker-new.vercel.app/sprint")
+    except Exception as e:
+        return RedirectResponse(
+            f"https://google-cracker-new.vercel.app/sprint?github_error=server_error"
+        )
 
 @app.get("/get/commits")
 async def get_commits(email :str):
@@ -683,7 +696,6 @@ async def check_commit_github(email: str):
             "Authorization": f"token {token}"
         }
 
-        # ── Fetch repos sorted by most-recently pushed ────────────────────────
         repos_response = requests.get(
             f"https://api.github.com/users/{user_name}/repos",
             headers=headers,
