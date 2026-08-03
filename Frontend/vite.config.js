@@ -10,8 +10,10 @@ export default defineConfig({
       "127.0.0.1",
       "g-crack-jslo.onrender.com",
       "g-crack.onrender.com",
-      "google-cracker-new.vercel.app",
-      "google-cracker-new.vercel.app/"
+      "https://google-cracker-new.vercel.app",
+      "https://google-cracker-new.vercel.app/",
+      "https://g-crack-iota.vercel.app",
+      "https://g-crack-iota.vercel.app/"
     ]
   }
 });
