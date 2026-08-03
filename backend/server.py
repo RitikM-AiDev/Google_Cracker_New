@@ -674,7 +674,26 @@ async def check_commit_github(email: str):
             }
         user = await userdb.find_one({"github_username" : user_name})
         last_solved_question = user.get("last_solved_question", 0)
-        commit_date = commit_data[0]["commit"]["author"]["date"]    
+        response = requests.get(url)
+
+        if response.status_code != 200:
+            return {
+                "error": response.json()
+            }
+
+        commit_data = response.json()
+
+        if not isinstance(commit_data, list):
+            return {
+                "error": commit_data
+            }
+
+        if len(commit_data) == 0:
+            return {
+                "message": "No commits found."
+            }
+
+        commit_date = commit_data[0]["commit"]["author"]["date"]   
         if datetime.fromisoformat(commit_date.replace("Z", "+00:00")).date() == datetime.now(timezone.utc).date() and abs(datetime.now(timezone.utc) - datetime.fromisoformat(commit_date.replace("Z", "+00:00"))) <= timedelta(minutes=1.5):
             await userdb.update_one(
                 {"github_username" : user_name},
