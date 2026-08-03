@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+motor
+pymongo
+python-dotenv
+argon2-cffi
+requests
+h11
+python-multipart
