@@ -541,7 +541,7 @@ async def get_weekly_ques(date: str):
 async def github_login():
     github_client_id = os.getenv("github_client_id")
     github_client_secret = os.getenv("github_client_secret")
-    CALLBACK_URL = "https://g-crack.onrender.com/auth/github/callback"
+    CALLBACK_URL = "https://g-crack-iota.vercel.app/auth/github/callback"
     github_url = (
         "https://github.com/login/oauth/authorize"
         f"?client_id={github_client_id}"
@@ -578,7 +578,7 @@ async def github_callback(code: str):
         {"github_username": github_user},
         {"$set": {"github_token": token}}
     )
-    return RedirectResponse(url="https://g-crack-jslo.onrender.com/sprint")
+    return RedirectResponse(url="https://google-cracker-new.vercel.app/sprint")
 
 @app.get("/get/commits")
 async def get_commits(email :str):
