@@ -36,7 +36,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://192.168.76.14:5173",
-
+        "http://10.20.16.126:5173",
         "https://google-cracker-new.vercel.app",
         "https://g-crack-iota.vercel.app",
     ],
