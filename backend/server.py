@@ -706,7 +706,7 @@ async def check_commit_github(email: str):
 
         if (
             commit_time.date() == now.date()
-            and abs(now - commit_time) <= timedelta(minutes=1.5)
+            and abs(now - commit_time) <= timedelta(minutes=3)
         ):
             await userdb.update_one(
                 {"email": email},
