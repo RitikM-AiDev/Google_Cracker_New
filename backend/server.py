@@ -40,6 +40,9 @@ app.add_middleware(
         "http://10.20.16.126:5173",
         "https://google-cracker-new.vercel.app",
         "https://g-crack-iota.vercel.app",
+        "https://g-crack-iota.vercel.app/",
+        
+
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -634,102 +637,165 @@ async def check_github_access(email: str):
 
 @app.post("/check/commit/github")
 async def check_commit_github(email: str):
-    user = await userdb.find_one({"email": email})
+    try:
+        user = await userdb.find_one({"email": email})
 
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    user_name = user["github_username"]
-    token = user["github_token"]
-    last_solved_question = user.get("last_solved_question", 0)
+        user_name = user.get("github_username")
+        token = user.get("github_token")
 
-    now = datetime.now(timezone.utc)
+        if not user_name or not token:
+            raise HTTPException(
+                status_code=400,
+                detail="GitHub account not connected. Please connect GitHub from your profile first."
+            )
 
-    reset_at = user.get("verified_commit_times_reset_at")
-    if reset_at is None or (now - reset_at) >= timedelta(hours=24):
-        await userdb.update_one(
-            {"email": email},
-            {
-                "$set": {
-                    "verified_commit_times": [],
-                    "verified_commit_times_reset_at": now
+        last_solved_question = user.get("last_solved_question", 0)
+        now = datetime.now(timezone.utc)
+
+        # ── Auto-reset verified_commit_times every 24 hours ──────────────────
+        reset_at = user.get("verified_commit_times_reset_at")
+
+        # Ensure reset_at is timezone-aware (old docs may have naive datetimes)
+        if reset_at is not None and reset_at.tzinfo is None:
+            reset_at = reset_at.replace(tzinfo=timezone.utc)
+
+        if reset_at is None or (now - reset_at) >= timedelta(hours=24):
+            await userdb.update_one(
+                {"email": email},
+                {
+                    "$set": {
+                        "verified_commit_times": [],
+                        "verified_commit_times_reset_at": now
+                    }
                 }
+            )
+            verified_times = []
+        else:
+            verified_times = user.get("verified_commit_times", [])
+            if not isinstance(verified_times, list):
+                verified_times = []
+
+        headers = {
+            "Accept": "application/vnd.github+json",
+            "Authorization": f"token {token}"
+        }
+
+        # ── Fetch repos sorted by most-recently pushed ────────────────────────
+        repos_response = requests.get(
+            f"https://api.github.com/users/{user_name}/repos",
+            headers=headers,
+            params={
+                "sort": "pushed",
+                "direction": "desc",
+                "per_page": 100
             }
         )
-        verified_times = []
-    else:
-        verified_times = user.get("verified_commit_times", [])
 
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"token {token}"
-    }
+        if repos_response.status_code == 401:
+            raise HTTPException(
+                status_code=401,
+                detail="GitHub token is invalid or expired. Please reconnect your GitHub account."
+            )
+        if repos_response.status_code == 403:
+            raise HTTPException(
+                status_code=429,
+                detail="GitHub API rate limit reached. Please wait a few minutes and try again."
+            )
+        if repos_response.status_code != 200:
+            err_msg = repos_response.json().get("message", repos_response.text)
+            raise HTTPException(
+                status_code=502,
+                detail=f"GitHub API error while fetching repos: {err_msg}"
+            )
 
-    repos_response = requests.get(
-        f"https://api.github.com/users/{user_name}/repos",
-        headers=headers,
-        params={
-            "sort": "pushed",
-            "direction": "desc",
-            "per_page": 100
-        }
-    )
+        repos = repos_response.json()
 
-    if repos_response.status_code != 200:
-        return {
-            "solved": False,
-            "error": repos_response.json(),
-            "message": "Failed to fetch GitHub repositories."
-        }
+        if not isinstance(repos, list):
+            raise HTTPException(
+                status_code=502,
+                detail="Unexpected response format from GitHub while fetching repos."
+            )
 
-    repos = repos_response.json()
+        if len(repos) == 0:
+            return {
+                "solved": False,
+                "message": "No repositories found on your GitHub account."
+            }
 
-    if not repos:
-        return {
-            "solved": False,
-            "message": "No repositories found on your GitHub account."
-        }
+        # ── Scan every repo for a new commit made today ───────────────────────
+        for repo in repos:
+            if not isinstance(repo, dict):
+                continue
 
-    for repo in repos:
+            repo_name = repo.get("name")
+            if not repo_name:
+                continue
 
-        repo_name = repo["name"]
+            # Skip forked repos — only count original work
+            if repo.get("fork", False):
+                continue
 
-        commit_response = requests.get(
-            f"https://api.github.com/repos/{user_name}/{repo_name}/commits",
-            headers=headers,
-            params={"per_page": 1}
-        )
+            commit_response = requests.get(
+                f"https://api.github.com/repos/{user_name}/{repo_name}/commits",
+                headers=headers,
+                params={"per_page": 1}
+            )
 
-        if commit_response.status_code != 200:
-            continue
+            if commit_response.status_code == 403:
+                raise HTTPException(
+                    status_code=429,
+                    detail="GitHub API rate limit reached. Please wait a few minutes and try again."
+                )
 
-        commits = commit_response.json()
+            # 409 = repo is empty; any other non-200 → skip
+            if commit_response.status_code != 200:
+                continue
 
-        if not isinstance(commits, list) or len(commits) == 0:
-            continue
+            commits = commit_response.json()
 
-        latest_commit = commits[0]
+            if not isinstance(commits, list) or len(commits) == 0:
+                continue
 
-        if "commit" not in latest_commit:
-            continue
+            latest_commit = commits[0]
 
-        commit_date = latest_commit["commit"]["author"]["date"]
-        commit_time = datetime.fromisoformat(
-            commit_date.replace("Z", "+00:00")
-        )
+            if not isinstance(latest_commit, dict):
+                continue
+            if "commit" not in latest_commit:
+                continue
 
-        # Accept commits pushed today (full day window)
-        if commit_time.date() == now.date():
+            commit_meta = latest_commit["commit"]
+            commit_author = commit_meta.get("author") or commit_meta.get("committer")
 
-            # ── Duplicate check: same commit timestamp already verified ──
+            if not commit_author or not commit_author.get("date"):
+                continue
+
+            commit_date = commit_author["date"]
+
+            try:
+                commit_time = datetime.fromisoformat(
+                    commit_date.replace("Z", "+00:00")
+                )
+            except (ValueError, AttributeError):
+                continue
+
+            # Only accept commits made today in UTC
+            if commit_time.date() != now.date():
+                continue
+
+            # Duplicate guard: reject if this exact timestamp was already verified today
             if commit_date in verified_times:
                 raise HTTPException(
                     status_code=409,
-                    detail=f"This commit ({commit_date}) has already been verified. Push a new commit to verify again."
+                    detail=(
+                        f"Commit pushed at {commit_date} was already verified. "
+                        "Push a new commit to your repository and try again."
+                    )
                 )
-            # ─────────────────────────────────────────────────────────────
 
-            # Store the commit timestamp and increment counter
+            # All checks passed — record the timestamp and award credit
             await userdb.update_one(
                 {"email": email},
                 {
@@ -741,15 +807,20 @@ async def check_commit_github(email: str):
             return {
                 "solved": True,
                 "repository": repo_name,
-                "commit_sha": latest_commit["sha"],
+                "commit_sha": latest_commit.get("sha", ""),
                 "commit_time": commit_date,
                 "last_solved_question": last_solved_question + 1
             }
 
-    return {
-        "solved": False,
-        "message": "No commits found for today. Push your solution to GitHub and try again."
-    }
+        return {
+            "solved": False,
+            "message": "No new commits found for today. Push your solution to GitHub and try again."
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Commit check failed: {str(e)}")
         
 @app.get("/get/last/solved/ques")
 async def get_last_solved_ques(email: str):
