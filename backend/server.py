@@ -32,10 +32,17 @@ userdb = db["user"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://google-cracker-new.vercel.app/","https://g-crack-iota.vercel.app/","https://g-crack-iota.vercel.app","https://google-cracker-new.vercel.app","http://localhost:5173","http://localhost:5173","http://localhost:8000","http://localhost:8000"],    
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://192.168.76.14:5173",
+
+        "https://google-cracker-new.vercel.app",
+        "https://g-crack-iota.vercel.app",
+    ],
     allow_credentials=True,
-    allow_methods=["*"],     
-    allow_headers=["*"],     
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
