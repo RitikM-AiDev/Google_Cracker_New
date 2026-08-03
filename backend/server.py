@@ -1,8 +1,9 @@
 import secrets
+import asyncio
 from requests import request
 import requests
 from fastapi.responses import RedirectResponse
-from fastapi import datastructures
+from fastapi import datastructures, BackgroundTasks
 from h11._abnf import status_code
 from typing import Dict
 from fastapi import FastAPI, Body, HTTPException
@@ -45,6 +46,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+async def delete_unverified_account(email: str):
+    """Wait 5 minutes, then delete the user if OTP was never verified."""
+    await asyncio.sleep(5 * 60) 
+    user = await userdb.find_one({"email": email})
+    if user and "otp" in user:
+      
+        await userdb.delete_one({"email": email})
+        print(f"[OTP Cleanup] Unverified account deleted: {email}")
+
+
 @app.get("/")
 def home():
     try:
@@ -55,7 +66,7 @@ def home():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/registerinpage")
-async def register(data: dict):
+async def register(data: dict, background_tasks: BackgroundTasks):
     try:
         print("register called")
         user = await userdb.find_one({"email": data["email"]})
@@ -151,6 +162,8 @@ async def register(data: dict):
                 "xp_scores" : 0,
                 "joined_date" : datetime.now(timezone.utc)  
             })
+
+            background_tasks.add_task(delete_unverified_account, data["email"])
 
         return {"message": "User registered successfully"}
     except HTTPException:
