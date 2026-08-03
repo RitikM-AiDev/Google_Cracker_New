@@ -464,8 +464,7 @@ export default function CodingSprintSection({ xp, earnXP }) {
       const data = await res.json();
 
       if (res.status === 409) {
-        // Duplicate commit — already verified today
-        setVerifyError("This commit was already verified. Push a new commit to your repository and try again.");
+        setVerifyError("Solution not found.");
         return;
       }
 
