@@ -53,7 +53,6 @@ async def delete_unverified_account(email: str):
     if user and "otp" in user:
       
         await userdb.delete_one({"email": email})
-        print(f"[OTP Cleanup] Unverified account deleted: {email}")
 
 
 @app.get("/")
@@ -142,11 +141,10 @@ async def register(data: dict, background_tasks: BackgroundTasks):
                 with SMTP_SSL("smtp.gmail.com", 465) as smtp:
                     smtp.login(sender_email, os.getenv("play_pass"))
                     smtp.sendmail(sender_email, receiver_email, message.as_string())
-            except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=str(e)
-                )
+            except Exception as smtp_err:
+                if os.getenv("ENV") == "production":
+                    raise HTTPException(status_code=500, detail=str(smtp_err))
+             
             ph = PasswordHasher()
             hashed = ph.hash(data["password"])
             hashed_otp = ph.hash(otp)
@@ -176,7 +174,7 @@ async def register(data: dict, background_tasks: BackgroundTasks):
 async def verify_otp(data: dict):
     try:
         email = data.get("email")
-        otp_val = data.get("otp_")
+        otp_val = str(data.get("otp_", "")).strip()
         if not email or not otp_val:
             raise HTTPException(
                 status_code=400,
@@ -191,13 +189,18 @@ async def verify_otp(data: dict):
                 detail="User Not Found"
             )   
         else:
+          
             try:
                 ph.verify(user["otp"], otp_val)
+                print(f"[DEBUG] ph.verify PASSED")
                 otp_created = user.get("otp_last_created")
                 if otp_created:
                     if otp_created.tzinfo is None:
                         otp_created = otp_created.replace(tzinfo=timezone.utc)
-                    if datetime.now(timezone.utc) - otp_created > timedelta(minutes=5):
+                    elapsed = datetime.now(timezone.utc) - otp_created
+                
+                    if elapsed > timedelta(minutes=5):
+                     
                         raise HTTPException(
                             status_code=401,
                             detail="OTP Expired"
@@ -209,6 +212,7 @@ async def verify_otp(data: dict):
                 )
                 return {"message": "OTP verified successfully"}
             except VerifyMismatchError:
+        
                 raise HTTPException(
                     status_code=401,
                     detail="Invalid OTP"
@@ -302,11 +306,10 @@ async def request_otp_again(data: dict):
                 with SMTP_SSL("smtp.gmail.com", 465) as smtp:
                     smtp.login(sender_email, os.getenv("play_pass"))
                     smtp.sendmail(sender_email, receiver_email, message.as_string())
-            except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=str(e)
-                )
+            except Exception as smtp_err:
+                if os.getenv("ENV") == "production":
+                    raise HTTPException(status_code=500, detail=str(smtp_err))
+               
             ph = PasswordHasher()
             hashed_otp = ph.hash(otp)
             await userdb.update_one(
@@ -569,7 +572,7 @@ async def github_callback(code: str):
         }
     )
     data = user_details.json()
-    print(data)
+    
     github_user = data.get("login",None)
     await userdb.update_one(
         {"github_username": github_user},
@@ -645,7 +648,7 @@ async def check_commit_github(email: str):
             params={"per_page" : 1}
         )
         commit_data = commit_response.json()
-        print(commit_data)
+      
         if not commit_data:
             return {
                 "solved" : False
@@ -654,7 +657,6 @@ async def check_commit_github(email: str):
         last_solved_question = user.get("last_solved_question", 0)
         commit_date = commit_data[0]["commit"]["author"]["date"]    
         if datetime.fromisoformat(commit_date.replace("Z", "+00:00")).date() == datetime.now(timezone.utc).date() and abs(datetime.now(timezone.utc) - datetime.fromisoformat(commit_date.replace("Z", "+00:00"))) <= timedelta(minutes=1.5):
-            print(commit_data)
             await userdb.update_one(
                 {"github_username" : user_name},
                 {
@@ -967,7 +969,6 @@ async def latest_file_changes(data : dict):
             params={"sort" : "pushed", "direction" : "desc", "per_page" : 1}
         )
         all_repo = response.json()
-        print(all_repo)
         top_repo = all_repo[0]["name"]
         url_commit = f"https://api.github.com/repos/{user_name}/{top_repo}/commits"
         if not all_repo:
