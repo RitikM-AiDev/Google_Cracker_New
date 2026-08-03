@@ -108,5 +108,5 @@ export const cycleSteps = [
 ];
 
 
-export const BACKEND_URL = "http://127.0.0.1:8000";
+export const BACKEND_URL = "https://g-crack-iota.vercel.app";
 
