@@ -460,10 +460,32 @@ export default function CodingSprintSection({ xp, earnXP }) {
       const res = await fetch(`${BACKEND_URL}/check/commit/github?email=${encodeURIComponent(email)}`, {
         method: "POST"
       });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+
       const data = await res.json();
+
+      if (res.status === 409) {
+        // Duplicate commit — already verified today
+        setVerifyError("This commit was already verified. Push a new commit to your repository and try again.");
+        return;
+      }
+
+      if (res.status === 400) {
+        // GitHub not connected
+        setVerifyError(data?.detail || "GitHub account not connected. Please connect your GitHub account from your profile.");
+        return;
+      }
+
+      if (res.status === 429) {
+        setVerifyError("GitHub API rate limit reached. Please wait a few minutes and try again.");
+        return;
+      }
+
+      if (!res.ok) {
+        // Any other error — show backend message if available
+        setVerifyError(data?.detail || `Verification failed (error ${res.status}). Please try again.`);
+        return;
+      }
+
       if (data.solved === true) {
         const nextIndex = data.last_solved_question !== undefined ? data.last_solved_question : (idx + 1);
         setUnlockedIndex(nextIndex);
@@ -474,11 +496,10 @@ export default function CodingSprintSection({ xp, earnXP }) {
           earnXP(xpEarned, `Daily Question ${idx + 1} verified`);
         }
       } else {
-        setVerifyError("Verification failed: Solution not found. Please make sure you push your commits to your GitHub repository.");
+        setVerifyError(data?.message || "No new commits found for today. Push your solution to GitHub and try again.");
       }
     } catch (err) {
-      console.error("Verification error:", err);
-      setVerifyError(`Failed to verify commit: ${err.message}`);
+      setVerifyError("Network error — could not reach the server. Please check your connection.");
     } finally {
       setVerifyingIdx(null);
     }
