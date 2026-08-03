@@ -554,33 +554,50 @@ async def github_login():
 async def github_callback(code: str):
     response = requests.post(
         "https://github.com/login/oauth/access_token",
-    data = {
+        data={
             "client_id": os.getenv("github_client_id"),
             "client_secret": os.getenv("github_client_secret"),
-            "code": code
+            "code": code,
         },
-        headers={
-            "Accept": "application/json"
-        }
+        headers={"Accept": "application/json"},
     )
-    token = response.json()["access_token"]
+
+    print("Token response:", response.status_code, response.text)
+
+    token_data = response.json()
+
+    if "access_token" not in token_data:
+        return {
+            "error": "Failed to get access token",
+            "github_response": token_data,
+        }
+
+    token = token_data["access_token"]
+
     user_details = requests.get(
         "https://api.github.com/user",
         headers={
-            "Authorization": f"token {token}",      
-            "Accept": "application/json"
-        }
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
     )
+
+    print("User response:", user_details.status_code, user_details.text)
+
     data = user_details.json()
-    
-    github_user = data.get("login",None)
-    await userdb.update_one(
+
+    github_user = data.get("login")
+
+    print("GitHub user:", github_user)
+
+    result = await userdb.update_one(
         {"github_username": github_user},
-        {"$set": {"github_token": token}}
+        {"$set": {"github_token": token}},
     )
-    return RedirectResponse(url="https://google-cracker-new.vercel.app/sprint")
 
+    print(result.raw_result)
 
+    return RedirectResponse("https://google-cracker-new.vercel.app/sprint")
 
 @app.get("/get/commits")
 async def get_commits(email :str):
