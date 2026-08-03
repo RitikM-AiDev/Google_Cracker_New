@@ -682,7 +682,7 @@ async def check_commit_github(email: str):
             }
 
         commit_data = response.json()
-
+        print(commit_data)
         if not isinstance(commit_data, list):
             return {
                 "error": commit_data
