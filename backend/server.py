@@ -580,6 +580,8 @@ async def github_callback(code: str):
     )
     return RedirectResponse(url="https://google-cracker-new.vercel.app/sprint")
 
+
+
 @app.get("/get/commits")
 async def get_commits(email :str):
     try:
