@@ -1,12 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
-import { Zap, Terminal, Menu, Monitor, X, User, Star, GitBranch, Mail, Shield, ChevronRight, Loader2 } from 'lucide-react';
+import { Zap, User, Star, GitBranch, Mail, Shield, ChevronRight, Loader2, Trophy } from 'lucide-react';
 import { BACKEND_URL } from '../constants';
 
 
 
 export default function Header({ xp, streak, consoleGlitch, setConsoleGlitch }) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [userProfile, setUserProfile] = useState({
     name: 'Candidate',
@@ -80,17 +79,41 @@ export default function Header({ xp, streak, consoleGlitch, setConsoleGlitch }) 
       })()
     : 'Cohort Member';
 
+  const navLinks = [
+    { to: '/how-it-works', label: 'How It Works' },
+    { to: '/weekly-system', label: 'Weekly System' },
+    { to: '/sprint', label: 'Coding Sprint' },
+    { to: '/xp-system', label: 'Leader Board' },
+    { to: '/faq', label: 'FAQ' },
+    { to: '/project-tracker', label: 'Make Your Project to Points' },
+  ];
+
   return (
     <>
-      <header className="main-header" style={{ background: '#000000' }}>
-        <div className="header-container">
-          <div className="logo">
-            <Link to="/">
+      <header className="main-header" style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(0,240,255,0.13)' }}>
+        <div className="header-container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '64px' }}>
+          {/* Logo */}
+          <div className="logo" style={{ flexShrink: 0 }}>
+            <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span className="logo-prompt">&gt;</span> GOOGLE COHORT<span className="logo-accent"></span>
             </Link>
           </div>
 
-          <div className="header-actions">
+          {/* Inline Nav Links */}
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '0.15rem', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {navLinks.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `header-nav-link${isActive ? ' header-nav-link--active' : ''}`}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* Right side: XP Badge + Avatar */}
+          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
             {/* XP Badge */}
             <div className="user-xp-status" id="header-xp-badge">
               <Zap className="xp-icon" size={16} fill="currentColor" />
@@ -285,7 +308,7 @@ export default function Header({ xp, streak, consoleGlitch, setConsoleGlitch }) 
                     </div>
                   </div>
 
-                  {/* Footer links: XP Dashboard & Logout Button */}
+                  {/* Footer links: Leader Board & Logout Button */}
                   <div style={{
                     padding: '1rem 1.5rem',
                     borderTop: '1px solid rgba(255,255,255,0.08)',
@@ -299,7 +322,7 @@ export default function Header({ xp, streak, consoleGlitch, setConsoleGlitch }) 
                       onClick={() => setProfileOpen(false)}
                       style={{ fontSize: '0.82rem', color: '#38bdf8', textDecoration: 'none', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}
                     >
-                      XP Dashboard <ChevronRight size={14} />
+                      <Trophy size={14} /> Leader Board <ChevronRight size={14} />
                     </Link>
                     <Link
                       to="/login"
@@ -329,268 +352,64 @@ export default function Header({ xp, streak, consoleGlitch, setConsoleGlitch }) 
               )}
             </div>
 
-            {/* ── Hamburger / Three-Dash Menu Button ── */}
-            <button
-              className="hamburger-btn"
-              id="hamburger-menu-btn"
-              onClick={() => setMobileMenuOpen(true)}
-              aria-label="Open navigation menu"
-            >
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-              <span className="hamburger-line"></span>
-            </button>
-
           </div>
         </div>
       </header>
 
-      {/* ── Full-Screen Navigation Overlay ── */}
-      {mobileMenuOpen && (
-        <div
-          className="nav-overlay"
-          id="nav-overlay"
-          onClick={(e) => { if (e.target === e.currentTarget) setMobileMenuOpen(false); }}
-        >
-          <div className="nav-overlay-panel">
-            {/* Close button */}
-            <button
-              className="nav-overlay-close"
-              id="nav-overlay-close"
-              onClick={() => setMobileMenuOpen(false)}
-              aria-label="Close navigation menu"
-            >
-              <X size={24} />
-            </button>
-
-            {/* Brand */}
-            <div className="nav-overlay-brand">
-              <span className="logo-prompt">&gt;</span> GOOGLE COHORT
-            </div>
-
-            {/* Nav items */}
-            <nav className="nav-overlay-links">
-              {[
-                { to: '/how-it-works', label: 'How It Works', num: '01' },
-                { to: '/weekly-system', label: 'Weekly System', num: '02' },
-                { to: '/sprint', label: 'Daily / Weekly Coding Sprint', num: '03' },
-                { to: '/build-sprint', label: 'Build Sprint', num: '04' },
-                { to: '/xp-system', label: 'XP Dashboard', num: '05' },
-                { to: '/faq', label: 'FAQ', num: '06' },
-                { to: '/project-tracker', label: 'Project Tracker', num: '07' },
-              ].map((item, i) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) => `nav-overlay-link${isActive ? ' nav-overlay-link--active' : ''}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{ animationDelay: `${i * 0.06}s` }}
-                >
-                  <span className="nav-overlay-num">{item.num}</span>
-                  <span className="nav-overlay-label">{item.label}</span>
-                  <ChevronRight className="nav-overlay-arrow" size={18} />
-                </NavLink>
-              ))}
-            </nav>
-
-            {/* Footer */}
-            <div className="nav-overlay-footer">
-              <button
-                className="btn btn-secondary nav-overlay-cta"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setProfileOpen(true);
-                }}
-                style={{ width: '100%', justifyContent: 'center' }}
-              >
-                <User size={16} style={{ marginRight: '6px' }} /> View Profile & Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Keyframe animations */}
+      {/* Keyframe animations + nav styles */}
       <style>{`
         @keyframes fadeSlideDown {
           from { opacity: 0; transform: translateY(-8px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        @keyframes popupFadeIn {
+          from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
-        /* ── Hamburger button ── */
-        .hamburger-btn {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+        /* ── Inline Header Nav Links ── */
+        .header-nav-link {
+          display: inline-flex;
           align-items: center;
-          gap: 5px;
-          width: 42px;
-          height: 42px;
-          background: rgba(0,240,255,0.06);
-          border: 1px solid rgba(0,240,255,0.25);
-          border-radius: 10px;
-          cursor: pointer;
-          transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
-          flex-shrink: 0;
-          padding: 0;
-        }
-        .hamburger-btn:hover {
-          background: rgba(0,240,255,0.14);
-          border-color: rgba(0,240,255,0.55);
-          box-shadow: 0 0 14px rgba(0,240,255,0.25);
-        }
-        .hamburger-line {
-          display: block;
-          width: 20px;
-          height: 2px;
-          border-radius: 2px;
-          background: #00f0ff;
-          transition: all 0.25s;
-        }
-
-        /* ── Overlay backdrop ── */
-        .nav-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(3, 8, 19, 0.75);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          z-index: 9999;
-          display: flex;
-          justify-content: flex-end;
-          animation: overlayFadeIn 0.25s ease;
-        }
-        @keyframes overlayFadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-
-        /* ── Slide-in panel ── */
-        .nav-overlay-panel {
-          width: min(420px, 100vw);
-          height: 100%;
-          background: rgba(5, 8, 22, 0.97);
-          backdrop-filter: blur(32px);
-          -webkit-backdrop-filter: blur(32px);
-          border-left: 1px solid rgba(0,240,255,0.18);
-          display: flex;
-          flex-direction: column;
-          padding: 2rem 2rem 2.5rem;
-          overflow-y: auto;
-          animation: panelSlideIn 0.3s cubic-bezier(0.22,1,0.36,1);
-          position: relative;
-        }
-        @keyframes panelSlideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to   { transform: translateX(0);    opacity: 1; }
-        }
-
-        /* ── Close button ── */
-        .nav-overlay-close {
-          position: absolute;
-          top: 1.5rem;
-          right: 1.5rem;
-          width: 38px;
-          height: 38px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(0,240,255,0.07);
-          border: 1px solid rgba(0,240,255,0.2);
-          border-radius: 50%;
-          color: #00f0ff;
-          cursor: pointer;
-          transition: background 0.2s, transform 0.2s;
-        }
-        .nav-overlay-close:hover {
-          background: rgba(0,240,255,0.18);
-          transform: rotate(90deg);
-        }
-
-        /* ── Brand ── */
-        .nav-overlay-brand {
-          font-family: var(--font-mono, monospace);
-          font-size: 1rem;
-          font-weight: 800;
-          color: #00f0ff;
-          letter-spacing: 0.12em;
-          margin-bottom: 2.5rem;
-          margin-top: 0.25rem;
-        }
-
-        /* ── Nav links ── */
-        .nav-overlay-links {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-          flex: 1;
-        }
-        .nav-overlay-link {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 0.85rem 1rem;
-          border-radius: 12px;
+          padding: 0.38rem 0.7rem;
+          border-radius: 8px;
           text-decoration: none;
-          color: rgba(200,230,255,0.85);
-          border: 1px solid transparent;
-          transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
-          animation: linkFadeUp 0.35s ease both;
-        }
-        @keyframes linkFadeUp {
-          from { opacity: 0; transform: translateX(20px); }
-          to   { opacity: 1; transform: translateX(0); }
-        }
-        .nav-overlay-link:hover {
-          background: rgba(0,240,255,0.08);
-          border-color: rgba(0,240,255,0.2);
-          color: #00f0ff;
-          transform: translateX(4px);
-        }
-        .nav-overlay-link--active {
-          background: rgba(0,240,255,0.12);
-          border-color: rgba(0,240,255,0.35);
-          color: #00f0ff;
-        }
-        .nav-overlay-num {
-          font-family: var(--font-mono, monospace);
-          font-size: 0.7rem;
-          color: rgba(0,240,255,0.45);
-          width: 24px;
-          flex-shrink: 0;
-        }
-        .nav-overlay-label {
-          flex: 1;
-          font-size: 0.95rem;
+          color: rgba(200, 230, 255, 0.80);
+          font-size: 0.8rem;
           font-weight: 600;
-          letter-spacing: 0.02em;
+          letter-spacing: 0.01em;
+          border: 1px solid transparent;
+          background: rgba(255,255,255,0.03);
+          transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s;
+          white-space: nowrap;
         }
-        .nav-overlay-arrow {
-          color: rgba(0,240,255,0.35);
-          transition: color 0.2s, transform 0.2s;
-        }
-        .nav-overlay-link:hover .nav-overlay-arrow,
-        .nav-overlay-link--active .nav-overlay-arrow {
+        .header-nav-link:hover {
+          background: rgba(0,240,255,0.10);
+          border-color: rgba(0,240,255,0.28);
           color: #00f0ff;
-          transform: translateX(3px);
+          box-shadow: 0 0 10px rgba(0,240,255,0.12);
         }
-
-        /* ── Footer Logout ── */
-        .nav-overlay-footer {
-          margin-top: 2rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          border-top: 1px solid rgba(0,240,255,0.1);
-          padding-top: 1.5rem;
-        }
-        .nav-overlay-cta {
-          text-align: center;
-          font-size: 0.95rem;
+        .header-nav-link--active {
+          background: rgba(0,240,255,0.14);
+          border-color: rgba(0,240,255,0.40);
+          color: #00f0ff;
+          box-shadow: 0 0 12px rgba(0,240,255,0.18);
         }
 
         /* Hide old mobile-menu-toggle if still in DOM */
         .mobile-menu-toggle { display: none !important; }
+
+        @media (max-width: 900px) {
+          .header-nav-link {
+            font-size: 0.72rem;
+            padding: 0.32rem 0.5rem;
+          }
+        }
+        @media (max-width: 680px) {
+          nav {
+            display: none !important;
+          }
+        }
       `}</style>
     </>
   );

@@ -8,7 +8,6 @@ import Footer from './components/Footer';
 import HeroSection from './components/HeroSection';
 import HowItWorksSection from './components/HowItWorksSection';
 import CodingSprintSection from './components/CodingSprintSection';
-import BuildSprintSection from './components/BuildSprintSection';
 import XpSystemSection from './components/XpSystemSection';
 import ApplySection from './components/ApplySection';
 import FaqSection from './components/FaqSection';
@@ -136,10 +135,6 @@ export default function App() {
       case '/project-tracker':
         htmlEl.style.setProperty('--page-bg', `url(${googleAbstractTech})`);
         htmlEl.style.setProperty('--page-bg-filter', 'brightness(0.7)');
-        break;
-      case '/build-sprint':
-        htmlEl.style.setProperty('--page-bg', `url(${googleCafeteriaBright})`);
-        htmlEl.style.setProperty('--page-bg-filter', 'brightness(0.8)');
         break;
       case '/buddy-system':
         htmlEl.style.setProperty('--page-bg', `url(${googleWorkspaceBright})`);
@@ -341,7 +336,6 @@ export default function App() {
           } />
           <Route path="/how-it-works" element={<HowItWorksSection />} />
           <Route path="/sprint" element={<CodingSprintSection xp={xp} earnXP={earnXP} />} />
-          <Route path="/build-sprint" element={<BuildSprintSection />} />
           <Route path="/xp-system" element={
             <XpSystemSection
               xp={xp}

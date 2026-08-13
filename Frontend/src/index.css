@@ -2189,9 +2189,7 @@ p {
     transition: var(--transition-smooth);
 }
 
-.leaderboard-filter-select:hover {
-    border-color: var(--color-electric-blue);
-}
+
 
 .table-container {
     overflow-x: auto;
@@ -2206,34 +2204,53 @@ p {
 .leaderboard-table td {
     padding: 1rem 1.25rem;
     text-align: left;
+    color: #e8f4ff;
 }
 
 .leaderboard-table th {
     font-family: var(--font-mono);
     font-size: 0.85rem;
-    color: var(--text-muted);
-    font-weight: 500;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: rgba(0, 240, 255, 0.75);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid rgba(0, 200, 255, 0.15);
+    text-transform: uppercase;
+    font-size: 0.75rem;
 }
 
 .leaderboard-table tr {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-    transition: var(--transition-smooth);
+    border-bottom: 1px solid rgba(0, 200, 255, 0.08);
+    background: rgba(0, 160, 255, 0.05);
 }
 
-.leaderboard-table tr:hover {
-    background: rgba(255, 255, 255, 0.01);
+/* Disable all hover effects on the leaderboard panel */
+.leaderboard-panel.glass-card,
+.leaderboard-panel.glass-card:hover {
+    background: rgba(5, 8, 18, 0.96) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-color: rgba(0, 200, 255, 0.12) !important;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.06) !important;
+    transform: none !important;
 }
+
 
 .leaderboard-table tr.active-user-row {
-    background: rgba(0, 240, 255, 0.05);
-    border-left: 3px solid var(--color-electric-blue);
+    background: rgba(0, 180, 255, 0.18) !important;
+    border-left: 3px solid #00f0ff;
+    box-shadow: inset 0 0 32px rgba(0, 240, 255, 0.10);
+}
+
+.leaderboard-table tr.active-user-row td {
+    color: #caf5ff;
+    font-weight: 700;
 }
 
 .table-rank {
     font-family: var(--font-mono);
-    color: var(--text-dark);
-    font-weight: bold;
+    color: #00d4ff;
+    font-weight: 800;
+    font-size: 1rem;
 }
 
 .table-developer-cell {
@@ -2251,10 +2268,12 @@ p {
 }
 
 .dev-name {
-    font-weight: 700;
-    color: #fff;
+    font-weight: 800;
+    color: #ffffff;
     display: block;
     line-height: 1.2;
+    font-size: 1rem;
+    text-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
 }
 
 .dev-handle-sub {
@@ -2280,8 +2299,10 @@ p {
 }
 
 .table-xp {
-    font-weight: bold;
-    color: var(--color-electric-blue);
+    font-weight: 800;
+    color: #00f0ff;
+    font-size: 1rem;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
 }
 
 /* XP Badges Grid */

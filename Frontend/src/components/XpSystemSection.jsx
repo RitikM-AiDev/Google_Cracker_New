@@ -36,7 +36,7 @@ export default function XpSystemSection({ xp, badges, leaderboardData, earnXP })
     >
       <div className="container">
         <div className="section-header text-center glass-card" style={{ maxWidth: '1100px', width: '100%', boxSizing: 'border-box', margin: '0 auto 2.5rem', padding: '2.5rem 3rem', background: 'rgba(12, 18, 34, 0.18)', backdropFilter: 'blur(12px) saturate(180%)', WebkitBackdropFilter: 'blur(12px) saturate(180%)', border: '1px solid rgba(255, 255, 255, 0.22)', borderRadius: '20px' }}>
-          <h2 className="section-title" style={{ color: '#ffffff' }}>Velocity XP Dashboard</h2>
+          <h2 className="section-title" style={{ color: '#ffffff' }}>Leader Board</h2>
           <p className="section-subtitle" style={{ color: '#cbd5e1', marginBottom: 0 }}>Complete tasks, gain XP, unlock badges, and rise up the cohort leaderboard.</p>
         </div>
 
@@ -108,7 +108,7 @@ export default function XpSystemSection({ xp, badges, leaderboardData, earnXP })
                             </div>
                           </td>
                           <td>
-                            <span className="table-email font-mono" style={{ color: 'rgba(255,255,255,0.75)' }}>{dev.email}</span>
+                            <span className="table-email font-mono" style={{ color: '#c8e8ff', fontWeight: 600 }}>{dev.email}</span>
                           </td>
                           <td className="table-xp text-right font-mono">
                             {dev.xp === null ? (
