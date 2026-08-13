@@ -444,7 +444,7 @@ export default function CodingSprintSection({ xp, earnXP }) {
   const [dbXp, setDbXp] = useState(null);
   const [xpUpdating, setXpUpdating] = useState(false);
 
-  const XP_BY_DIFFICULTY = { easy: 15, medium: 35, hard: 60 };
+  const XP_BY_DIFFICULTY = { easy: 2, medium: 5, hard: 7 };
 
   const handleVerifyCommit = async (idx, question) => {
     const email = localStorage.getItem("email") || "";

@@ -74,7 +74,7 @@ function InstructionModal({ onStart }) {
             {[
               { icon: <Code size={18} />, color: '#00f0ff', title: 'Commit Detection', desc: 'We fetch your most recent GitHub repository commit and analyze the diff.' },
               { icon: <Target size={18} />, color: '#39ff14', title: '50+ Line Threshold', desc: 'Your latest commit must have at least 50 line changes (additions + deletions) to qualify.' },
-              { icon: <Zap size={18} />, color: '#f59e0b', title: 'Earn 100 XP', desc: 'Pass the compliance check and instantly earn 100 XP toward your cohort ranking.' },
+              { icon: <Zap size={18} />, color: '#f59e0b', title: 'Earn 10 XP', desc: 'Pass the compliance check and instantly earn 10 XP toward your cohort ranking.' },
               { icon: <Star size={18} />, color: '#a78bfa', title: 'Excluded Repos', desc: 'Repos named "google_cracker" or "leetcode" are excluded — only original project work counts.' },
             ].map((item, i) => (
               <div key={i} style={{
@@ -224,7 +224,7 @@ export default function ProjectTrackerSection({ earnXP }) {
         setResult('success');
         setStatusMsg('Project Verified successfully! You have met the developer threshold.');
         if (earnXP) {
-          earnXP(100, 'Project Milestone Compliance Met');
+          earnXP(10, 'Project Milestone Compliance Met');
         }
       } else {
         await addLog('❌ Verification completed, but constraints were NOT satisfied.', 300);
